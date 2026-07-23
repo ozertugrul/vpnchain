@@ -11,6 +11,8 @@
   [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
 </div>
 
+*🇹🇷 [Türkçe (Turkish) Sürüm](#vpnchain-) | 🇬🇧 [English Version Below](#-english-version)*
+
 <br/>
 
 **VPNChain**, zayıf ve kısıtlı internet bağlantılarında (özellikle yüksek paket kaybı olan veya UDP trafiğinin kısıtlandığı ağlarda) kesintisiz bir deneyim sunmak için tasarlanmış yenilikçi bir Android VPN uygulamasıdır. 
@@ -91,3 +93,87 @@ Her türlü Pull Request (PR) ve Issue açılışına açığız. Lütfen kod ek
 
 Bu proje **MIT Lisansı** altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakabilirsiniz. 
 *UDPspeeder ve WireGuard'ın kendi çekirdek projeleri kendi lisanslarına (GPL/MIT vb.) tabidir.*
+
+---
+<br/>
+
+# 🇬🇧 English Version
+
+**VPNChain** is an innovative Android VPN application designed to provide a seamless experience on weak and restricted internet connections (especially networks with high packet loss or UDP throttling).
+
+The application combines the speed and security of the **WireGuard** protocol with the packet recovery capability of **UDPspeeder** (Forward Error Correction - FEC). All your WireGuard traffic is tunneled through a local UDPspeeder client on your device, ensuring incredible stability even on fluctuating Wi-Fi or 4G/5G connections!
+
+---
+
+## ⚠️ Important Prerequisites
+
+This application does not provide a standalone VPN service; it is **only a client**. To use the application, you must have the following already set up and running:
+1. A **WireGuard Server**,
+2. A **UDPspeeder Server** (running on a VPS) to encapsulate the WireGuard traffic.
+
+---
+
+## ✨ Features
+
+* 🛡️ **WireGuard + UDPspeeder Chain**: WireGuard packets are tunneled through UDPspeeder, protecting them against packet loss.
+* ⚡ **Jetpack Compose UI**: Modern, fast, Material You (Material 3) compliant, smooth user interface.
+* 🔄 **Persistent Background Service (FGS)**: Android Doze-mode resistant Foreground Service and persistent notification bar.
+* 📊 **Live Statistics**: TX/RX speeds updated every second, session-based traffic, and all-time bandwidth tracking.
+* ⚙️ **Profile Management**: Import/Export configurations in `*.selconf` format as JSON.
+* 📜 **Live Logs (Logcat)**: Monitor all CLI outputs of WireGuard (GoBackend) and UDPspeeder simultaneously and in real-time from within the app.
+
+---
+
+## 🛠️ How it Works (Architecture)
+
+VPNChain uses the GoBackend infrastructure within the official `wireguard-android` SDK.
+1. The app starts a local UDPspeeder subprocess on your device with the specified settings.
+2. When the WireGuard tunnel is established, the target IP is set to the local port of UDPspeeder (e.g., `127.0.0.1:1234`) instead of your server's IP.
+3. To prevent conflicts and infinite loops, sockets created by UDPspeeder are exempted from the VPN using `VpnService.protect()`.
+
+### 🎛️ UDPspeeder Operational Parameters
+
+The application offers two built-in profiles based on your network conditions:
+
+**1. Normal Mode (Low Latency)**
+Does not duplicate any packets; it merely masks and tunnels UDP traffic.
+```bash
+# Argument Used:
+-c -l 0.0.0.0:[LOCAL_PORT] -r [SERVER_IP]:[REMOTE_PORT] --mode 1 --timeout 5
+```
+
+**2. FEC Mode (Forward Error Correction)**
+Suitable for networks with high packet loss. One extra recovery packet is sent for every 2 packets (f1:2). Latency increases slightly, but connection stability is maximized.
+```bash
+# Argument Used:
+-c -l 0.0.0.0:[LOCAL_PORT] -r [SERVER_IP]:[REMOTE_PORT] -f1:2 --mode 1 --timeout 5
+```
+
+> **Note:** The WireGuard `MTU` value is automatically reduced to **1280** within the application so that WireGuard packets can fit inside the UDPspeeder header data.
+
+---
+
+## 🚀 Installation & Build
+
+The application is developed with modern Android tools.
+
+1. Clone the project:
+   ```bash
+   git clone https://github.com/username/VPNChain.git
+   ```
+2. Open the folder with Android Studio (Ladybug or higher recommended).
+3. Wait for the Gradle sync.
+4. Install the application on your device or emulator (API 26+).
+
+> **Important:** The UDPspeeder binaries (`libspeederv2.so`) are embedded in the app according to device architectures (ARM64, x86_64, armeabi-v7a). The system extracts and runs these binaries thanks to `android:extractNativeLibs="true"` in the `AndroidManifest.xml`. You won't experience JNI errors.
+
+---
+
+## 🤝 Contributing
+
+We welcome all Pull Requests (PRs) and Issues. Please make sure to adhere to the Compose architecture and MVVM pattern when adding code.
+
+## 📄 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details. 
+*The core projects of UDPspeeder and WireGuard are subject to their own licenses (GPL/MIT, etc.).*
