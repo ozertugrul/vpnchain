@@ -19,6 +19,14 @@ Uygulama, **WireGuard** protokolünün hızını ve güvenliğini, **UDPspeeder*
 
 ---
 
+## ⚠️ Önemli Ön Koşullar
+
+Bu uygulama tek başına bir VPN hizmeti sunmaz, **sadece bir istemcidir (client)**. Uygulamayı kullanabilmeniz için önceden kurulmuş ve çalışır durumda olan:
+1. Bir **WireGuard Sunucusuna**,
+2. WireGuard trafiğini sarmalayacak bir **UDPspeeder Sunucusuna** (VPS üzerinde çalıştırılan) ihtiyacınız vardır.
+
+---
+
 ## ✨ Özellikler
 
 * 🛡️ **WireGuard + UDPspeeder Zinciri**: WireGuard paketleri, UDPspeeder üzerinden tünellenerek paket kayıplarına karşı korunur.
