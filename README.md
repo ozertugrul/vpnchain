@@ -15,9 +15,9 @@
 
 <br/>
 
-**VPNChain**, zayıf ve kısıtlı internet bağlantılarında (özellikle yüksek paket kaybı olan veya UDP trafiğinin kısıtlandığı ağlarda) kesintisiz bir deneyim sunmak için tasarlanmış yenilikçi bir Android VPN uygulamasıdır. 
+**VPNChain**, zayıf ve kısıtlı internet bağlantılarında (özellikle yüksek paket kaybı olan, UDP trafiğinin kısıtlandığı veya İSS/ISP engellerinin bulunduğu ağlarda) kesintisiz bir deneyim ve özgürlük sunmak için tasarlanmış yenilikçi bir Android VPN uygulamasıdır. 
 
-Uygulama, **WireGuard** protokolünün hızını ve güvenliğini, **UDPspeeder**'ın (Forward Error Correction - FEC) paket kurtarma yeteneğiyle birleştirir. Tüm WireGuard trafiğiniz yerel cihazda bir UDPspeeder istemcisinden geçirilir ve böylece dalgalı Wi-Fi veya 4G/5G bağlantılarında dahi inanılmaz stabilite sağlanır!
+Uygulama, **WireGuard** protokolünün hızını ve güvenliğini, **UDPspeeder**'ın (Forward Error Correction - FEC) paket kurtarma yeteneğiyle birleştirir. Tüm WireGuard trafiğiniz yerel cihazda bir UDPspeeder istemcisinden geçirilerek maskelenir. Bu sayede hem servis sağlayıcıların (İSS) koyduğu katı sansürler ve hız sınırlandırmaları (throttling) aşılır, hem de dalgalı Wi-Fi veya 4G/5G bağlantılarında inanılmaz bir stabilite sağlanır!
 
 ---
 
@@ -31,7 +31,7 @@ Bu uygulama tek başına bir VPN hizmeti sunmaz, **sadece bir istemcidir (client
 
 ## ✨ Özellikler
 
-* 🛡️ **WireGuard + UDPspeeder Zinciri**: WireGuard paketleri, UDPspeeder üzerinden tünellenerek paket kayıplarına karşı korunur.
+* 🛡️ **WireGuard + UDPspeeder Zinciri & İSS Atlatma**: WireGuard paketleri, UDPspeeder üzerinden maskelenip tünellenerek katı İSS (Servis Sağlayıcı) engellerine karşı görünmez kılınır ve paket kayıpları engellenir.
 * ⚡ **Jetpack Compose Arayüzü**: Modern, hızlı ve Material You (Material 3) uyumlu, pürüzsüz kullanıcı arayüzü.
 * 🔄 **Kalıcı Arka Plan Servisi (FGS)**: Android Doze modundan etkilenmeyen Foreground Service ve kalıcı bildirim çubuğu.
 * 📊 **Canlı İstatistikler**: Saniye saniye güncellenen TX/RX hızları, oturum bazlı trafik ve tüm zamanların bant genişliği takibi.
@@ -99,9 +99,9 @@ Bu proje **MIT Lisansı** altında lisanslanmıştır. Detaylar için [LICENSE](
 
 # 🇬🇧 English Version
 
-**VPNChain** is an innovative Android VPN application designed to provide a seamless experience on weak and restricted internet connections (especially networks with high packet loss or UDP throttling).
+**VPNChain** is an innovative Android VPN application designed to provide a seamless experience and digital freedom on weak and restricted internet connections (especially networks with high packet loss, UDP throttling, or strict ISP blocking/censorship).
 
-The application combines the speed and security of the **WireGuard** protocol with the packet recovery capability of **UDPspeeder** (Forward Error Correction - FEC). All your WireGuard traffic is tunneled through a local UDPspeeder client on your device, ensuring incredible stability even on fluctuating Wi-Fi or 4G/5G connections!
+The application combines the speed and security of the **WireGuard** protocol with the packet recovery capability of **UDPspeeder** (Forward Error Correction - FEC). All your WireGuard traffic is obfuscated and tunneled through a local UDPspeeder client on your device. This effectively bypasses Internet Service Provider (ISP) restrictions and throttling, while ensuring incredible stability even on fluctuating Wi-Fi or 4G/5G connections!
 
 ---
 
@@ -115,7 +115,7 @@ This application does not provide a standalone VPN service; it is **only a clien
 
 ## ✨ Features
 
-* 🛡️ **WireGuard + UDPspeeder Chain**: WireGuard packets are tunneled through UDPspeeder, protecting them against packet loss.
+* 🛡️ **WireGuard + UDPspeeder Chain & ISP Bypass**: WireGuard packets are obfuscated and tunneled through UDPspeeder, masking them from strict ISP censorship/blocking while protecting against packet loss.
 * ⚡ **Jetpack Compose UI**: Modern, fast, Material You (Material 3) compliant, smooth user interface.
 * 🔄 **Persistent Background Service (FGS)**: Android Doze-mode resistant Foreground Service and persistent notification bar.
 * 📊 **Live Statistics**: TX/RX speeds updated every second, session-based traffic, and all-time bandwidth tracking.
