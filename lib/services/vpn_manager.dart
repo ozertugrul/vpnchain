@@ -30,8 +30,8 @@ class VpnManager extends ChangeNotifier {
   int _lastRxBytes = 0;
   int _txPackets = 0;
   int _rxPackets = 0;
-  final List<double> _historyDown = List.filled(24, 0.0);
-  final List<double> _historyUp = List.filled(24, 0.0);
+  final List<double> _historyDown = List.filled(24, 0.0, growable: true);
+  final List<double> _historyUp = List.filled(24, 0.0, growable: true);
 
   List<VpnProfile> get profiles => List.unmodifiable(_profiles);
   VpnProfile? get currentProfile => _currentProfile;

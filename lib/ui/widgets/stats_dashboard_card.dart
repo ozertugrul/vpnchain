@@ -27,18 +27,20 @@ class StatsDashboardCard extends StatelessWidget {
             // Top Header: Status Pill & Test Ping Button
             Row(
               children: [
-                _StatusBadge(status: stats.status, handshake: stats.handshakeStatus),
-                const Spacer(),
+                Flexible(
+                  child: _StatusBadge(status: stats.status, handshake: stats.handshakeStatus),
+                ),
+                const SizedBox(width: 8),
                 if (onTestPing != null)
                   TextButton.icon(
                     onPressed: onTestPing,
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       visualDensity: VisualDensity.compact,
                       foregroundColor: AppTheme.cyanNeon,
                     ),
                     icon: const Icon(Icons.network_ping_rounded, size: 16),
-                    label: const Text('Test Server & Ping', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    label: const Text('Test Ping', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
               ],
             ),
@@ -122,29 +124,34 @@ class StatsDashboardCard extends StatelessWidget {
 
             // Bottom Diagnostics Row: Ping, Uptime, Packets
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _DiagBadge(
-                  icon: Icons.network_ping_rounded,
-                  label: 'Server Ping',
-                  value: stats.pingMs > 0 ? '${stats.pingMs} ms' : (isTransitioning ? 'Probing...' : '--'),
-                  color: stats.pingMs > 0 && stats.pingMs < 80
-                      ? AppTheme.greenActive
-                      : stats.pingMs < 160
-                          ? AppTheme.amberWarning
-                          : AppTheme.redError,
+                Expanded(
+                  child: _DiagBadge(
+                    icon: Icons.network_ping_rounded,
+                    label: 'Server Ping',
+                    value: stats.pingMs > 0 ? '${stats.pingMs} ms' : (isTransitioning ? 'Probing...' : '--'),
+                    color: stats.pingMs > 0 && stats.pingMs < 80
+                        ? AppTheme.greenActive
+                        : stats.pingMs < 160
+                            ? AppTheme.amberWarning
+                            : AppTheme.redError,
+                  ),
                 ),
-                _DiagBadge(
-                  icon: Icons.timer_outlined,
-                  label: 'Uptime',
-                  value: Formatters.formatDuration(stats.uptimeSeconds),
-                  color: Colors.white,
+                Expanded(
+                  child: _DiagBadge(
+                    icon: Icons.timer_outlined,
+                    label: 'Uptime',
+                    value: Formatters.formatDuration(stats.uptimeSeconds),
+                    color: Colors.white,
+                  ),
                 ),
-                _DiagBadge(
-                  icon: Icons.all_inbox_rounded,
-                  label: 'Total Packets',
-                  value: '${stats.rxPackets} ↓ / ${stats.txPackets} ↑',
-                  color: const Color(0xFFCBD5E1),
+                Expanded(
+                  child: _DiagBadge(
+                    icon: Icons.all_inbox_rounded,
+                    label: 'Total Packets',
+                    value: '${stats.rxPackets} ↓ / ${stats.txPackets} ↑',
+                    color: const Color(0xFFCBD5E1),
+                  ),
                 ),
               ],
             ),
@@ -204,13 +211,17 @@ class _StatusBadge extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 7),
-          Text(
-            label,
-            style: TextStyle(
-              color: textCol,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-              letterSpacing: 0.6,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: textCol,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                letterSpacing: 0.6,
+              ),
             ),
           ),
         ],
@@ -332,15 +343,24 @@ class _DiagBadge extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: const Color(0xFF64748B)),
+            Icon(icon, size: 12, color: const Color(0xFF64748B)),
             const SizedBox(width: 4),
-            Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w500)),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w500),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 3),
         Text(
           value,
-          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
         ),
       ],
     );

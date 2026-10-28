@@ -121,9 +121,9 @@ void main() {
 
       expect(find.text('PROTECTED • HANDSHAKE OK'), findsOneWidget);
       expect(find.text('38 ms'), findsOneWidget);
-      expect(find.text('Test Server & Ping'), findsOneWidget);
+      expect(find.text('Test Ping'), findsOneWidget);
 
-      await tester.tap(find.text('Test Server & Ping'));
+      await tester.tap(find.text('Test Ping'));
       await tester.pump();
       expect(pingTested, isTrue);
     });
