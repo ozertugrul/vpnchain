@@ -8,7 +8,7 @@ class OtaUpdateService extends ChangeNotifier {
   static final OtaUpdateService instance = OtaUpdateService._();
   OtaUpdateService._();
 
-  static const String currentVersion = '2.1.0';
+  static const String currentVersion = '2.1.1';
   static const String repoOwner = 'ozertugrul';
   static const String repoName = 'vpnchain';
   static const String apiUrl = 'https://api.github.com/repos/$repoOwner/$repoName/releases/latest';
