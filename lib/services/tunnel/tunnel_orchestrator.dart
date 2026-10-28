@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../../models/tunnel_mode.dart';
 import '../../models/vpn_profile.dart';
 import 'builtin_udpspeeder_engine.dart';
@@ -28,32 +29,59 @@ class TunnelOrchestrator {
       return;
     }
 
+    // 1. Resolve domain name to numeric IPv4/IPv6 address
+    String resolvedServerIp = profile.activeServerIp;
+    try {
+      final lookup = await InternetAddress.lookup(profile.activeServerIp);
+      if (lookup.isNotEmpty) {
+        resolvedServerIp = lookup.first.address;
+        onLog('Resolved server host "${profile.activeServerIp}" -> $resolvedServerIp');
+      }
+    } catch (e) {
+      onLog('Warning: Could not resolve hostname "${profile.activeServerIp}": $e. Using as-is.');
+    }
+
     ObfuscationEngine engine;
 
     if (profile.tunnelMode == TunnelMode.udpspeeder) {
-      if (preference == EnginePreference.native) {
-        final args = profile.udpSpeederConfig.buildCliParams().split(' ');
-        engine = NativeProcessEngine(
-          binaryName: 'speederv2',
-          arguments: args,
-          customBinaryPath: customBinaryPath,
-        );
+      final speederConfig = profile.udpSpeederConfig.copyWith(serverIp: resolvedServerIp);
+      final args = speederConfig.buildCliParamsList(resolvedIp: resolvedServerIp);
+
+      final nativeEngine = NativeProcessEngine(
+        binaryName: 'speederv2',
+        arguments: args,
+        customBinaryPath: customBinaryPath,
+      );
+
+      // Check if native binary exists
+      final nativeAvailable = (preference == EnginePreference.native) ||
+          (preference == EnginePreference.auto && await _isNativeExecutable(nativeEngine));
+
+      if (nativeAvailable) {
+        engine = nativeEngine;
       } else {
         // Built-in pure Dart engine
-        engine = BuiltInUdpSpeederEngine(config: profile.udpSpeederConfig);
+        engine = BuiltInUdpSpeederEngine(config: speederConfig);
       }
     } else {
       // udp2raw mode
-      if (preference == EnginePreference.native) {
-        final args = profile.udp2rawConfig.buildCliParams().split(' ');
-        engine = NativeProcessEngine(
-          binaryName: 'udp2raw',
-          arguments: args,
-          customBinaryPath: customBinaryPath,
-        );
+      final rawConfig = profile.udp2rawConfig.copyWith(serverIp: resolvedServerIp);
+      final args = rawConfig.buildCliParamsList(resolvedIp: resolvedServerIp);
+
+      final nativeEngine = NativeProcessEngine(
+        binaryName: 'udp2raw',
+        arguments: args,
+        customBinaryPath: customBinaryPath,
+      );
+
+      final nativeAvailable = (preference == EnginePreference.native) ||
+          (preference == EnginePreference.auto && await _isNativeExecutable(nativeEngine));
+
+      if (nativeAvailable) {
+        engine = nativeEngine;
       } else {
         // Built-in pure Dart engine
-        engine = BuiltInUdp2RawEngine(config: profile.udp2rawConfig);
+        engine = BuiltInUdp2RawEngine(config: rawConfig);
       }
     }
 
@@ -69,11 +97,11 @@ class TunnelOrchestrator {
     } catch (e) {
       // If native failed, try fallback to built-in if preference was auto
       if (preference == EnginePreference.auto && engine is NativeProcessEngine) {
-        onLog('Native process failed. Falling back to Built-in Dart engine...');
+        onLog('Native process failed ($e). Falling back to Built-in Dart engine...');
         if (profile.tunnelMode == TunnelMode.udpspeeder) {
-          engine = BuiltInUdpSpeederEngine(config: profile.udpSpeederConfig);
+          engine = BuiltInUdpSpeederEngine(config: profile.udpSpeederConfig.copyWith(serverIp: resolvedServerIp));
         } else {
-          engine = BuiltInUdp2RawEngine(config: profile.udp2rawConfig);
+          engine = BuiltInUdp2RawEngine(config: profile.udp2rawConfig.copyWith(serverIp: resolvedServerIp));
         }
         _activeEngine = engine;
         await engine.start(
@@ -84,6 +112,15 @@ class TunnelOrchestrator {
       } else {
         rethrow;
       }
+    }
+  }
+
+  Future<bool> _isNativeExecutable(NativeProcessEngine engine) async {
+    try {
+      final path = await engine.findBinaryPath();
+      return path != null && path.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 

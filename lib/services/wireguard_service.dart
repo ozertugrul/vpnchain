@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:wireguard_flutter_plus/wireguard_flutter_plus.dart';
 import '../models/vpn_stats.dart';
 
 class WireGuardService {
   final _wireGuard = WireGuardFlutter.instance;
   bool _initialized = false;
+  bool _usingWgQuick = false;
+  static const String _confPath = '/tmp/vpnchain0.conf';
 
   StreamSubscription? _stageSub;
   StreamSubscription? _trafficSub;
@@ -28,6 +31,13 @@ class WireGuardService {
     }
   }
 
+  String? _findWgQuick() {
+    for (final p in ['/opt/homebrew/bin/wg-quick', '/usr/local/bin/wg-quick', '/usr/bin/wg-quick']) {
+      if (File(p).existsSync()) return p;
+    }
+    return null;
+  }
+
   Future<void> start({
     required String wgConfigText,
     required String serverAddress,
@@ -36,6 +46,43 @@ class WireGuardService {
     required Function(int rxSpeed, int txSpeed, int totalRx, int totalTx) onTrafficUpdate,
     required Function(String log) onLog,
   }) async {
+    // 1. On macOS desktop, prioritize native wg-quick if available to bypass Apple NetworkExtension restrictions
+    if (Platform.isMacOS) {
+      final wgQuick = _findWgQuick();
+      if (wgQuick != null) {
+        onLog('macOS: Detected native wg-quick at $wgQuick');
+        try {
+          final confFile = File(_confPath);
+          await confFile.writeAsString(wgConfigText);
+
+          onLog('macOS: Requesting system permission to activate tunnel...');
+          // Tear down any stale interface first
+          await Process.run('osascript', [
+            '-e',
+            'do shell script "$wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
+          ]);
+
+          final result = await Process.run('osascript', [
+            '-e',
+            'do shell script "$wgQuick up $_confPath" with administrator privileges',
+          ]);
+
+          if (result.exitCode == 0) {
+            _usingWgQuick = true;
+            onLog('macOS: Native WireGuard tunnel activated successfully!');
+            onLog(result.stdout.toString().trim());
+            onStatusChanged(VpnStatus.connected);
+            return;
+          } else {
+            onLog('macOS: wg-quick up warning: ${result.stderr}');
+          }
+        } catch (e) {
+          onLog('macOS: wg-quick launcher note: $e');
+        }
+      }
+    }
+
+    // 2. Standard WireGuard plugin initialization (Windows, Android, iOS, or macOS extension)
     await initialize();
 
     _stageSub?.cancel();
@@ -94,6 +141,24 @@ class WireGuardService {
   }
 
   Future<void> stop({required Function(String log) onLog}) async {
+    if (_usingWgQuick && Platform.isMacOS) {
+      final wgQuick = _findWgQuick();
+      if (wgQuick != null) {
+        try {
+          onLog('macOS: Tearing down wg-quick interface...');
+          await Process.run('osascript', [
+            '-e',
+            'do shell script "$wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
+          ]);
+          _usingWgQuick = false;
+          onLog('macOS: wg-quick tunnel terminated.');
+          return;
+        } catch (e) {
+          onLog('macOS: wg-quick down error: $e');
+        }
+      }
+    }
+
     try {
       _stageSub?.cancel();
       _trafficSub?.cancel();

@@ -94,8 +94,54 @@ class HomeScreen extends StatelessWidget {
               Text('Error: ${res['error']}', style: const TextStyle(color: AppTheme.redError, fontSize: 13)),
               const SizedBox(height: 8),
               const Text(
-                'Please verify that the server IP is correct and ports (4096 UDP / 4097 TCP) are open in your VPS firewall.',
+                'Lütfen sunucu IP ve portlarının (28001 UDP / 8080 TCP / 51820 WG) Keenetic / sunucu güvenlik duvarında açık olduğunu kontrol edin.',
                 style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+            ],
+            if (vpnManager.isConnected) ...[
+              const Divider(color: Color(0xFF334155), height: 24),
+              const Text(
+                'İç Ağ Tünel Tanılama (Ping):',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.router_rounded, size: 16),
+                    label: const Text('Ping Gateway (10.13.13.1)', style: TextStyle(fontSize: 11)),
+                    onPressed: () async {
+                      Navigator.of(ctx).pop();
+                      final pingRes = await vpnManager.pingVpnTarget('10.13.13.1');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(pingRes['success'] == true ? '✓ 10.13.13.1 Gateway erişilebilir!' : '✗ 10.13.13.1 Gateway yanıt vermedi.'),
+                            backgroundColor: pingRes['success'] == true ? AppTheme.greenActive : AppTheme.redError,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.computer_rounded, size: 16),
+                    label: const Text('Ping Windows Peer (10.13.13.8)', style: TextStyle(fontSize: 11)),
+                    onPressed: () async {
+                      Navigator.of(ctx).pop();
+                      final pingRes = await vpnManager.pingVpnTarget('10.13.13.8');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(pingRes['success'] == true ? '✓ 10.13.13.8 Peer erişilebilir!' : '✗ 10.13.13.8 Peer yanıt vermedi (Windows Güvenlik Duvarı ICMP engelliyor olabilir).'),
+                            backgroundColor: pingRes['success'] == true ? AppTheme.greenActive : AppTheme.redError,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
             ],
           ],

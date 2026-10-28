@@ -54,7 +54,7 @@ class _Udp2RawSettingsCardState extends State<Udp2RawSettingsCard> {
     widget.onChanged(
       widget.config.copyWith(
         serverIp: _ipCtrl.text.trim(),
-        remotePort: int.tryParse(_remotePortCtrl.text.trim()) ?? 4097,
+        remotePort: int.tryParse(_remotePortCtrl.text.trim()) ?? 8080,
         localPort: int.tryParse(_localPortCtrl.text.trim()) ?? 1234,
         password: _passwordCtrl.text.trim(),
       ),

@@ -70,52 +70,60 @@ class ProfileStorageService {
       wireGuardConfig: wg,
       udpSpeederConfig: UdpSpeederConfig(
         serverIp: wg.serverHost,
-        remotePort: 4096,
+        remotePort: 28001,
         localPort: 1234,
+        password: '',
+        preset: UdpSpeederPreset.normal,
+        mode: 1,
+        timeout: 5,
+        mtu: 1250,
       ),
       udp2rawConfig: Udp2RawConfig(
         serverIp: wg.serverHost,
-        remotePort: 4097,
+        remotePort: 8080,
         localPort: 1234,
+        password: 'selcuk05',
+        rawMode: RawMode.faketcp,
       ),
     );
   }
 
   VpnProfile _createSampleProfile() {
     const sampleWg = '''[Interface]
-PrivateKey = aGE2c2RrZmxqYXNkZmxramFzZGZsa2phc2RmbGtmYXNkYXM=
-Address = 10.13.13.2/24
+PrivateKey = wFtflSQvAA2WWDMuqj640oXtZTK8cdasZgphk3CME3A=
+Address = 10.13.13.9/32
 DNS = 1.1.1.1, 8.8.8.8
-MTU = 1280
+MTU = 1250
 
 [Peer]
-PublicKey = YmFzZTY0cHVibGlja2V5ZXhhbXBsZTFhMjM0NTY3ODkwMTI=
-Endpoint = 198.51.100.1:51820
-AllowedIPs = 0.0.0.0/0, ::/0
+PublicKey = vtEXS//3XH3aauDJdocDPFZhqf48GlLlH1pbBwnZ1y0=
+PresharedKey = yb+RIpi+4wdhqT8uAQhtRVY9yvc6laqnwx6/dO0bew0=
+Endpoint = selcuk9805.keenetic.pro:51820
+AllowedIPs = 10.13.13.0/24
 PersistentKeepalive = 25''';
 
     final wg = WireGuardConfig.parse(sampleWg);
 
     return VpnProfile(
       id: 'default-profile-1',
-      name: 'Default Chained Server',
+      name: 'Selcuk Keenetic Server',
       tunnelMode: TunnelMode.udpspeeder,
       wireGuardConfig: wg,
       udpSpeederConfig: const UdpSpeederConfig(
-        serverIp: '198.51.100.1',
-        remotePort: 4096,
+        serverIp: 'selcuk9805.keenetic.pro',
+        remotePort: 28001,
         localPort: 1234,
-        password: 'vpnchain_secret',
-        preset: UdpSpeederPreset.fec1_2,
+        password: '',
+        preset: UdpSpeederPreset.normal,
         mode: 1,
         timeout: 5,
-        mtu: 1280,
+        mtu: 1250,
       ),
       udp2rawConfig: const Udp2RawConfig(
-        serverIp: '198.51.100.1',
-        remotePort: 4097,
+        serverIp: 'selcuk9805.keenetic.pro',
+        remotePort: 8080,
         localPort: 1234,
-        password: 'vpnchain_secret',
+        password: 'selcuk05',
         rawMode: RawMode.faketcp,
         cipherMode: CipherMode.aes128cbc,
         seqMode: 3,

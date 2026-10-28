@@ -30,7 +30,7 @@ class NativeProcessEngine implements ObfuscationEngine {
   }) async {
     if (_running) return;
 
-    final resolvedPath = await _findBinaryPath();
+    final resolvedPath = await findBinaryPath();
     if (resolvedPath == null) {
       throw FileNotFoundException(
         'Native binary "$binaryName" not found. Please install it or use the Built-in Dart Core engine.',
@@ -80,23 +80,38 @@ class NativeProcessEngine implements ObfuscationEngine {
     }
   }
 
-  Future<String?> _findBinaryPath() async {
+  Future<String?> findBinaryPath() async {
     if (customBinaryPath != null && File(customBinaryPath!).existsSync()) {
       return customBinaryPath;
     }
 
-    // Check application directory
-    final currentDir = Directory.current.path;
     final exeExt = Platform.isWindows ? '.exe' : '';
-    final localFile = File('$currentDir/$binaryName$exeExt');
-    if (localFile.existsSync()) {
-      return localFile.path;
+
+    // Check common binary install directories on macOS and Linux
+    final searchDirs = [
+      Directory.current.path,
+      Platform.resolvedExecutable.contains('/') ? File(Platform.resolvedExecutable).parent.path : '',
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+      '/usr/bin',
+      '/tmp',
+      '/tmp/udpspeeder_src',
+      '/tmp/udp2raw_src',
+    ];
+
+    for (final dir in searchDirs) {
+      if (dir.isEmpty) continue;
+      final file = File('$dir/$binaryName$exeExt');
+      if (file.existsSync()) {
+        return file.path;
+      }
     }
 
     // Check system PATH
     final pathEnv = Platform.environment['PATH'] ?? '';
     final separator = Platform.isWindows ? ';' : ':';
     for (final dir in pathEnv.split(separator)) {
+      if (dir.isEmpty) continue;
       final file = File('$dir/$binaryName$exeExt');
       if (file.existsSync()) {
         return file.path;

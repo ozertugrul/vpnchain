@@ -68,23 +68,29 @@ class Udp2RawConfig {
 
   const Udp2RawConfig({
     this.serverIp = '',
-    this.remotePort = 4097,
+    this.remotePort = 8080,
     this.localPort = 1234,
-    this.password = 'vpnchain_secret',
+    this.password = 'selcuk05',
     this.rawMode = RawMode.faketcp,
     this.cipherMode = CipherMode.aes128cbc,
-    this.authMode = AuthMode.simple,
+    this.authMode = AuthMode.md5,
     this.seqMode = 3,
     this.fixGro = true,
     this.extraArgs = '',
   });
 
   /// Builds the CLI argument string for udp2raw binary execution.
-  String buildCliParams() {
+  String buildCliParams({String? resolvedIp}) {
+    return buildCliParamsList(resolvedIp: resolvedIp).join(' ');
+  }
+
+  /// Builds the CLI argument list for Process.start.
+  List<String> buildCliParamsList({String? resolvedIp}) {
+    final targetIp = (resolvedIp != null && resolvedIp.isNotEmpty) ? resolvedIp : (serverIp.isNotEmpty ? serverIp : '127.0.0.1');
     final List<String> args = [
       '-c',
       '-l', '127.0.0.1:$localPort',
-      '-r', '$serverIp:$remotePort',
+      '-r', '$targetIp:$remotePort',
     ];
 
     if (password.isNotEmpty) {
@@ -106,7 +112,7 @@ class Udp2RawConfig {
       args.addAll(extraArgs.trim().split(RegExp(r'\s+')));
     }
 
-    return args.join(' ');
+    return args;
   }
 
   Udp2RawConfig copyWith({
@@ -178,9 +184,9 @@ class Udp2RawConfig {
 
     return Udp2RawConfig(
       serverIp: json['serverIp'] as String? ?? '',
-      remotePort: json['remotePort'] as int? ?? 4097,
+      remotePort: json['remotePort'] as int? ?? 8080,
       localPort: json['localPort'] as int? ?? 1234,
-      password: json['password'] as String? ?? 'vpnchain_secret',
+      password: json['password'] as String? ?? 'selcuk05',
       rawMode: rMode,
       cipherMode: cMode,
       authMode: aMode,

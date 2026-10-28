@@ -54,7 +54,7 @@ class _UdpSpeederSettingsCardState extends State<UdpSpeederSettingsCard> {
     widget.onChanged(
       widget.config.copyWith(
         serverIp: _ipCtrl.text.trim(),
-        remotePort: int.tryParse(_remotePortCtrl.text.trim()) ?? 4096,
+        remotePort: int.tryParse(_remotePortCtrl.text.trim()) ?? 28001,
         localPort: int.tryParse(_localPortCtrl.text.trim()) ?? 1234,
         password: _passwordCtrl.text.trim(),
       ),

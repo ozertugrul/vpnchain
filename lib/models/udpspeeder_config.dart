@@ -44,22 +44,28 @@ class UdpSpeederConfig {
 
   const UdpSpeederConfig({
     this.serverIp = '',
-    this.remotePort = 4096,
+    this.remotePort = 28001,
     this.localPort = 1234,
-    this.password = 'vpnchain_secret',
+    this.password = '',
     this.preset = UdpSpeederPreset.normal,
     this.mode = 1,
     this.timeout = 5,
-    this.mtu = 1280,
+    this.mtu = 1250,
     this.extraArgs = '',
   });
 
   /// Builds the CLI argument string used by the native binary.
-  String buildCliParams() {
+  String buildCliParams({String? resolvedIp}) {
+    return buildCliParamsList(resolvedIp: resolvedIp).join(' ');
+  }
+
+  /// Builds the CLI argument list for Process.start.
+  List<String> buildCliParamsList({String? resolvedIp}) {
+    final targetIp = (resolvedIp != null && resolvedIp.isNotEmpty) ? resolvedIp : (serverIp.isNotEmpty ? serverIp : '127.0.0.1');
     final List<String> args = [
       '-c',
       '-l', '127.0.0.1:$localPort',
-      '-r', '$serverIp:$remotePort',
+      '-r', '$targetIp:$remotePort',
     ];
 
     if (password.isNotEmpty) {
@@ -73,14 +79,17 @@ class UdpSpeederConfig {
     args.addAll([
       '--mode', mode.toString(),
       '--timeout', timeout.toString(),
-      '--mtu', mtu.toString(),
     ]);
+
+    if (mtu > 0 && mtu != 1250) {
+      args.addAll(['--mtu', mtu.toString()]);
+    }
 
     if (extraArgs.trim().isNotEmpty) {
       args.addAll(extraArgs.trim().split(RegExp(r'\s+')));
     }
 
-    return args.join(' ');
+    return args;
   }
 
   UdpSpeederConfig copyWith({
@@ -131,13 +140,13 @@ class UdpSpeederConfig {
 
     return UdpSpeederConfig(
       serverIp: json['serverIp'] as String? ?? '',
-      remotePort: json['remotePort'] as int? ?? 4096,
+      remotePort: json['remotePort'] as int? ?? 28001,
       localPort: json['localPort'] as int? ?? 1234,
-      password: json['password'] as String? ?? 'vpnchain_secret',
+      password: json['password'] as String? ?? '',
       preset: p,
       mode: json['mode'] as int? ?? 1,
       timeout: json['timeout'] as int? ?? 5,
-      mtu: json['mtu'] as int? ?? 1280,
+      mtu: json['mtu'] as int? ?? 1250,
       extraArgs: json['extraArgs'] as String? ?? '',
     );
   }

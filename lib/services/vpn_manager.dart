@@ -346,7 +346,7 @@ class VpnManager extends ChangeNotifier {
   /// Actively tests the server connection and reports detailed diagnostic measurements.
   Future<Map<String, dynamic>> testServerConnection() async {
     final host = _currentProfile?.activeServerIp;
-    final port = _currentProfile?.activeTargetPort ?? 4096;
+    final port = _currentProfile?.activeTargetPort ?? 28001;
 
     if (host == null || host.isEmpty) {
       return {'success': false, 'error': 'No server IP specified in configuration.'};
@@ -385,6 +385,28 @@ class VpnManager extends ChangeNotifier {
       };
     } catch (e) {
       addLog('[Diagnostics]', '✗ Server test failed: $e', level: LogLevel.error);
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Pings an internal VPN IP (Gateway 10.13.13.1 or Peer 10.13.13.8) using native ICMP ping.
+  Future<Map<String, dynamic>> pingVpnTarget(String ip) async {
+    addLog('[Ping Diagnostics]', 'Executing ICMP ping to $ip...');
+    try {
+      final result = await Process.run(
+        Platform.isWindows ? 'ping' : 'ping',
+        Platform.isWindows ? ['-n', '3', '-w', '1500', ip] : ['-c', '3', '-W', '2', ip],
+      );
+
+      final isSuccess = result.exitCode == 0;
+      final out = result.stdout.toString().trim();
+      addLog('[Ping Results]', isSuccess ? '✓ $ip is reachable:\n$out' : '✗ $ip timed out:\n$out');
+      return {
+        'success': isSuccess,
+        'output': out,
+      };
+    } catch (e) {
+      addLog('[Ping Error]', 'Could not execute ping: $e', level: LogLevel.error);
       return {'success': false, 'error': e.toString()};
     }
   }
