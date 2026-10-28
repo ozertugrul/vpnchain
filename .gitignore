@@ -17,3 +17,17 @@ app-debug.apk
 build_and_sync.sh
 setup_remote.sh
 MASTER_PROMPT.md
+
+# Flutter artifacts
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+dist/
+.idea/
+.metadata
+*.lock
+macos/Flutter/ephemeral/
+ios/Flutter/ephemeral/
+windows/flutter/ephemeral/

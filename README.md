@@ -1,179 +1,200 @@
+# VPNChain 🚀 (Flutter Multi-Platform Edition)
+
 <div align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="150" alt="VPNChain Logo" />
-  
-  # VPNChain 🚀
-  
-  **Ultimate Android VPN Client Chaining WireGuard with UDPspeeder**
-  
-  [![Android](https://img.shields.io/badge/Android-10.0%2B-green.svg)](https://android.com)
-  [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-blue.svg)](https://kotlinlang.org)
-  [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-Latest-teal.svg)](https://developer.android.com/jetpack/compose)
+  <img src="assets/images/logo.png" width="130" alt="VPNChain Logo" />
+
+  ### Multi-Platform WireGuard Tunneling with UDPspeeder & udp2raw Obfuscation
+  **Bypass ISP DPI Signature Detection • Eliminate Packet Drops • Simulated FakeTCP**
+
+  [![macOS](https://img.shields.io/badge/macOS-15.0%2B-blue.svg)](https://apple.com/macos)
+  [![iOS](https://img.shields.io/badge/iOS-15.0%2B-purple.svg)](https://apple.com/ios)
+  [![Windows](https://img.shields.io/badge/Windows-7%20--%2011-0078D6.svg)](https://microsoft.com/windows)
+  [![Android](https://img.shields.io/badge/Android-5.0%2B%20(API%2021%2B)-green.svg)](https://android.com)
+  [![Flutter](https://img.shields.io/badge/Flutter-3.44%2B-02569B.svg)](https://flutter.dev)
   [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
 </div>
 
-*🇹🇷 [Türkçe (Turkish) Sürüm](#vpnchain-) | 🇬🇧 [English Version Below](#-english-version)*
+---
 
-<br/>
-
-**VPNChain**, zayıf ve kısıtlı internet bağlantılarında (özellikle yüksek paket kaybı olan, UDP trafiğinin kısıtlandığı veya İSS/ISP engellerinin bulunduğu ağlarda) kesintisiz bir deneyim ve özgürlük sunmak için tasarlanmış yenilikçi bir Android VPN uygulamasıdır. 
-
-Uygulama, **WireGuard** protokolünün hızını ve güvenliğini, **UDPspeeder**'ın (Forward Error Correction - FEC) paket kurtarma yeteneğiyle birleştirir. Tüm WireGuard trafiğiniz yerel cihazda bir UDPspeeder istemcisinden geçirilerek maskelenir. Bu sayede hem servis sağlayıcıların (İSS) koyduğu katı sansürler ve hız sınırlandırmaları (throttling) aşılır, hem de dalgalı Wi-Fi veya 4G/5G bağlantılarında inanılmaz bir stabilite sağlanır!
+*🇹🇷 [Türkçe Dokümantasyon](#-türkçe-dokümantasyon) | 🇬🇧 [English Documentation](#-english-documentation)*
 
 ---
 
-## ⚠️ Önemli Ön Koşullar
+# 🇹🇷 Türkçe Dokümantasyon
 
-Bu uygulama tek başına bir VPN hizmeti sunmaz, **sadece bir istemcidir (client)**. Uygulamayı kullanabilmeniz için önceden kurulmuş ve çalışır durumda olan:
-1. Bir **WireGuard Sunucusuna**,
-2. WireGuard trafiğini sarmalayacak bir **UDPspeeder Sunucusuna** (VPS üzerinde çalıştırılan) ihtiyacınız vardır.
+## 🎯 Projenin Amacı ve Çözülen Problem
 
----
+Birçok internet servis sağlayıcısı (İSS / ISP), internet sansürü ve kısıtlamaları kapsamında **Derin Paket İncelemesi (DPI - Deep Packet Inspection)** sistemleri kullanır. 
 
-## ✨ Özellikler
+Standard bir WireGuard VPN bağlantısında paketler doğrudan UDP üzerinden gönderilir:
+- El sıkışma başlatma paketleri (`Type 0x01`, 148 bayt)
+- El sıkışma yanıt paketleri (`Type 0x02`, 92 bayt)
+- Taşıma verisi paketleri (`Type 0x04`)
 
-* 🛡️ **WireGuard + UDPspeeder Zinciri & İSS Atlatma**: WireGuard paketleri, UDPspeeder üzerinden maskelenip tünellenerek katı İSS (Servis Sağlayıcı) engellerine karşı görünmez kılınır ve paket kayıpları engellenir.
-* ⚡ **Jetpack Compose Arayüzü**: Modern, hızlı ve Material You (Material 3) uyumlu, pürüzsüz kullanıcı arayüzü.
-* 🔄 **Kalıcı Arka Plan Servisi (FGS)**: Android Doze modundan etkilenmeyen Foreground Service ve kalıcı bildirim çubuğu.
-* 📊 **Canlı İstatistikler**: Saniye saniye güncellenen TX/RX hızları, oturum bazlı trafik ve tüm zamanların bant genişliği takibi.
-* ⚙️ **Profil Yönetimi**: `*.selconf` formatında konfigürasyonları JSON olarak içe/dışa aktarabilme.
-* 📜 **Canlı Loglar (Logcat)**: WireGuard'ın (GoBackend) ve UDPspeeder'ın tüm CLI çıktılarını eşzamanlı ve anlık olarak uygulama içinden izleme imkanı.
+İSS DPI donanımları bu sabit imza ve başlık baytlarını saniyeler içinde tespit ederek **WireGuard paketlerini tamamen düşürür (drop)** veya bağlantıyı tıkar (UDP QoS throttling). Bu durumda standart WireGuard istemcileri el sıkışmasını tamamlayamaz veya birkaç saniye sonra kopar.
+
+**VPNChain**, bu sorunu çözmek için WireGuard'ı yerel bir tünelleme katmanıyla zincirler (chain). WireGuard trafiği doğrudan sunucuya değil, yerel `127.0.0.1:<local_port>` portuna yönlendirilir. Uygulama içerisindeki gizleme motoru paketleri alarak başlıkları dönüştürür, WireGuard imzalarını tamamen siler ve sunucuya güvenli şekilde iletir.
 
 ---
 
-## 🛠️ Nasıl Çalışır? (Mimari)
+## ⚡ Desteklenen 2 Çalışma Modu
 
-VPNChain, resmi `wireguard-android` SDK'sı içerisindeki GoBackend altyapısını kullanır. 
-1. Uygulama, belirtilen ayarlarla cihazınızda yerel bir UDPspeeder süreci (subprocess) başlatır.
-2. WireGuard tüneli açılırken hedef IP olarak sunucunuzun IP'si yerine, UDPspeeder'ın yerel portu (örn: `127.0.0.1:1234`) gösterilir.
-3. Çakışmaları ve sonsuz döngüleri önlemek için UDPspeeder'ın oluşturduğu soketler `VpnService.protect()` kullanılarak VPN'den muaf tutulur.
+### 1. 🚀 UDPspeeder Modu (FEC & Paket Kurtarma)
+* **Ne Yapar?** WireGuard UDP paketlerini UDPspeeder protokolüyle sarmalar, her pakete rastgele salt ekleyerek şifreler (XOR/AES) ve İleri Hata Düzeltme (**Forward Error Correction - FEC**) uygular.
+* **Ne Zaman Kullanılır?** İSS'nin UDP paketlerini düşürdüğü, dalgalı mobil (4G/5G) veya yüksek paket kayıplı Wi-Fi ağlarında.
+* **Avantajı:** Örneğin `1:2` FEC modunda her 2 pakette 1 yedek kurtarma paketi üretilir. İSS bir paketi düşürse bile veri paket kaybı yaşamadan karşı tarafta anında matematiksel olarak kurtarılır!
 
-### 🎛️ UDPspeeder Çalışma Parametreleri
+### 2. 🛡️ udp2raw Modu (FakeTCP & DPI Aldatma)
+* **Ne Yapar?** WireGuard UDP paketlerini sahte bir **TCP (FakeTCP)** bağlantısı içine hapseder. Gerçek bir TCP 3'lü el sıkışması (`SYN` -> `SYN/ACK` -> `ACK`), TCP sıra (seq/ack) numaraları ve TCP başlıkları üretir.
+* **Ne Zaman Kullanılır?** İSS'nin tüm UDP trafiğini engellediği, UDP portlarını kısıtladığı veya çok agresif DPI filtreleri uyguladığı durumlarda.
+* **Avantajı:** İSS DPI ve güvenlik duvarları trafiği normal bir web/TCP trafiği olarak görür; WireGuard UDP imzası tamamen yok olur!
 
-Uygulama, ağ durumunuza göre iki farklı hazır profil sunar:
+---
 
-**1. Normal Mode (Düşük Gecikme)**
-Herhangi bir paket çoklaması yapmaz, sadece UDP trafiğini maskeler ve tüneller.
-```bash
-# Kullanılan Argüman:
--c -l 0.0.0.0:[LOCAL_PORT] -r [SERVER_IP]:[REMOTE_PORT] --mode 1 --timeout 5
+## 📱 Platform Desteği
+
+| Platform | Asgari Desteklenen Sürüm | Mimari |
+|---|---|---|
+| **macOS** | macOS 12.0 / 15.0+ (Sequoia uyumlu) | Apple Silicon (M1/M2/M3/M4) & Intel |
+| **iOS** | iOS 15.0+ | arm64 |
+| **Windows** | Windows 7, 8.1, 10, 11 | x86_64 / x86 |
+| **Android** | Android 5.0+ (API 21+) ile Android 15/16 arası | arm64-v8a, armeabi-v7a, x86_64 |
+
+---
+
+## 🏗️ Mimari & Çalışma Mantığı
+
+```
+[Kullanıcı Trafiği]
+       │
+       ▼
+[Sistem TUN Arayüzü (WireGuard Client)]
+       │
+       ▼  (UDP Hedef: 127.0.0.1:1234, MTU: 1280)
+[VPNChain Gizleme Motoru (UDPspeeder / udp2raw)]
+       │
+       │  (WireGuard İmzaları Silinmiş, Sahte TCP / FEC Sarmallı Paketler)
+       ▼
+[İnternet / İSS DPI Filtresi] ────► (DPI Tarafından Görünmez, Engellenemez)
+       │
+       ▼
+[VPS Sunucusu: UDPspeeder / udp2raw Dinleyicisi]
+       │  (Paket Açılır, Orijinal WireGuard Paketine Dönüştürülür)
+       ▼
+[VPS: WireGuard Server (127.0.0.1:51820)]
+       │
+       ▼
+[Özgür İnternet 🌐]
 ```
 
-**2. FEC Mode (Forward Error Correction - Paket Kurtarma)**
-Yüksek paket kaybı olan ağlar için uygundur. Her 2 pakette 1 ekstra kurtarma paketi (f1:2) yollanır. Gecikme biraz artar ama bağlantı kararlılığı maksimize edilir.
-```bash
-# Kullanılan Argüman:
--c -l 0.0.0.0:[LOCAL_PORT] -r [SERVER_IP]:[REMOTE_PORT] -f1:2 --mode 1 --timeout 5
+---
+
+## 🖥️ VPS Sunucu Kurulumu
+
+Uygulamanın içindeki **"Server Deployment" (VPS Kurulum)** ekranından tek tıkla Docker Compose dosyasını veya Bash kurulum betiğini kopyalayabilirsiniz.
+
+### Docker Compose ile Hızlı Başlatma (`docker-compose.yml`):
+```yaml
+version: '3.8'
+
+services:
+  # 1. WireGuard VPN Sunucusu (Yerel 51820 portunda dinler)
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: vpnchain_wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - SERVERURL=YOUR_VPS_IP
+      - SERVERPORT=51820
+      - PEERS=1
+      - PEERDNS=1.1.1.1
+      - INTERNAL_SUBNET=10.13.13.0
+      - ALLOWEDIPS=0.0.0.0/0
+    volumes:
+      - ./wireguard-config:/config
+    network_mode: host
+    restart: unless-stopped
+
+  # 2. UDPspeeder Sunucusu (Dış Port: 4096 UDP -> İç WireGuard: 127.0.0.1:51820)
+  udpspeeder:
+    image: wangyu-/speederv2:latest
+    container_name: vpnchain_udpspeeder
+    command: -s -l 0.0.0.0:4096 -r 127.0.0.1:51820 -k "vpnchain_secret" -f1:2 --mode 1 --timeout 5 --mtu 1280
+    network_mode: host
+    restart: unless-stopped
+
+  # 3. udp2raw Sunucusu (Dış Port: 4097 TCP -> İç WireGuard: 127.0.0.1:51820)
+  udp2raw:
+    image: wangyu-/udp2raw:latest
+    container_name: vpnchain_udp2raw
+    cap_add:
+      - NET_ADMIN
+    command: -s -l 0.0.0.0:4097 -r 127.0.0.1:51820 -k "vpnchain_secret" --raw-mode faketcp --cipher-mode aes128cbc --seq-mode 3 --fix-gro
+    network_mode: host
+    restart: unless-stopped
 ```
 
-> **Not:** WireGuard paketlerinin (MTU) UDPspeeder başlık (header) verileriyle sığabilmesi için uygulamanın içinde WireGuard `MTU` değeri otomatik olarak **1280**'e düşürülür.
-
----
-
-## 🚀 Kurulum & Derleme
-
-Uygulama, modern Android araçlarıyla geliştirilmiştir.
-
-1. Projeyi klonlayın:
-   ```bash
-   git clone https://github.com/username/VPNChain.git
-   ```
-2. Android Studio (Ladybug veya üstü önerilir) ile klasörü açın.
-3. Gradle senkronizasyonunu bekleyin.
-4. Cihazınıza veya emülatörünüze (API 26+) uygulamayı yükleyin.
-
-> **Önemli:** Uygulamanın içerisinde UDPspeeder binary dosyaları (`libspeederv2.so`) cihazların mimarisine (ARM64, x86_64, armeabi-v7a) göre gömülüdür. Sistem, `AndroidManifest.xml` içerisindeki `android:extractNativeLibs="true"` sayesinde bu binaryleri çıkartıp çalıştırmaktadır. JNI hatası yaşamazsınız.
-
----
-
-## 🤝 Katkıda Bulunma
-
-Her türlü Pull Request (PR) ve Issue açılışına açığız. Lütfen kod eklerken Compose mimarisine ve MVVM yapısına sadık kalmaya özen gösterin.
-
-## 📄 Lisans
-
-Bu proje **MIT Lisansı** altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakabilirsiniz. 
-*UDPspeeder ve WireGuard'ın kendi çekirdek projeleri kendi lisanslarına (GPL/MIT vb.) tabidir.*
-
----
-<br/>
-
-# 🇬🇧 English Version
-
-**VPNChain** is an innovative Android VPN application designed to provide a seamless experience and digital freedom on weak and restricted internet connections (especially networks with high packet loss, UDP throttling, or strict ISP blocking/censorship).
-
-The application combines the speed and security of the **WireGuard** protocol with the packet recovery capability of **UDPspeeder** (Forward Error Correction - FEC). All your WireGuard traffic is obfuscated and tunneled through a local UDPspeeder client on your device. This effectively bypasses Internet Service Provider (ISP) restrictions and throttling, while ensuring incredible stability even on fluctuating Wi-Fi or 4G/5G connections!
-
----
-
-## ⚠️ Important Prerequisites
-
-This application does not provide a standalone VPN service; it is **only a client**. To use the application, you must have the following already set up and running:
-1. A **WireGuard Server**,
-2. A **UDPspeeder Server** (running on a VPS) to encapsulate the WireGuard traffic.
-
----
-
-## ✨ Features
-
-* 🛡️ **WireGuard + UDPspeeder Chain & ISP Bypass**: WireGuard packets are obfuscated and tunneled through UDPspeeder, masking them from strict ISP censorship/blocking while protecting against packet loss.
-* ⚡ **Jetpack Compose UI**: Modern, fast, Material You (Material 3) compliant, smooth user interface.
-* 🔄 **Persistent Background Service (FGS)**: Android Doze-mode resistant Foreground Service and persistent notification bar.
-* 📊 **Live Statistics**: TX/RX speeds updated every second, session-based traffic, and all-time bandwidth tracking.
-* ⚙️ **Profile Management**: Import/Export configurations in `*.selconf` format as JSON.
-* 📜 **Live Logs (Logcat)**: Monitor all CLI outputs of WireGuard (GoBackend) and UDPspeeder simultaneously and in real-time from within the app.
-
----
-
-## 🛠️ How it Works (Architecture)
-
-VPNChain uses the GoBackend infrastructure within the official `wireguard-android` SDK.
-1. The app starts a local UDPspeeder subprocess on your device with the specified settings.
-2. When the WireGuard tunnel is established, the target IP is set to the local port of UDPspeeder (e.g., `127.0.0.1:1234`) instead of your server's IP.
-3. To prevent conflicts and infinite loops, sockets created by UDPspeeder are exempted from the VPN using `VpnService.protect()`.
-
-### 🎛️ UDPspeeder Operational Parameters
-
-The application offers two built-in profiles based on your network conditions:
-
-**1. Normal Mode (Low Latency)**
-Does not duplicate any packets; it merely masks and tunnels UDP traffic.
+Başlatmak için VPS üzerinde:
 ```bash
-# Argument Used:
--c -l 0.0.0.0:[LOCAL_PORT] -r [SERVER_IP]:[REMOTE_PORT] --mode 1 --timeout 5
+docker compose up -d
 ```
 
-**2. FEC Mode (Forward Error Correction)**
-Suitable for networks with high packet loss. One extra recovery packet is sent for every 2 packets (f1:2). Latency increases slightly, but connection stability is maximized.
+---
+
+## 🚀 Derleme ve Geliştirme
+
+### Gereksinimler:
+- Flutter SDK (3.22+)
+- Xcode 15+ (macOS/iOS için)
+- Android SDK (API 34+)
+
 ```bash
-# Argument Used:
--c -l 0.0.0.0:[LOCAL_PORT] -r [SERVER_IP]:[REMOTE_PORT] -f1:2 --mode 1 --timeout 5
+# Bağımlılıkları yükleyin
+flutter pub get
+
+# Testleri çalıştırın
+flutter test
+
+# macOS uygulamasını derleyin
+flutter build macos
+
+# Android APK derleyin
+flutter build apk --release
+
+# iOS uygulamasını derleyin
+flutter build ios --no-codesign
 ```
 
-> **Note:** The WireGuard `MTU` value is automatically reduced to **1280** within the application so that WireGuard packets can fit inside the UDPspeeder header data.
-
 ---
 
-## 🚀 Installation & Build
+# 🇬🇧 English Documentation
 
-The application is developed with modern Android tools.
+## 🎯 Purpose & Problem Statement
 
-1. Clone the project:
-   ```bash
-   git clone https://github.com/username/VPNChain.git
-   ```
-2. Open the folder with Android Studio (Ladybug or higher recommended).
-3. Wait for the Gradle sync.
-4. Install the application on your device or emulator (API 26+).
+Internet Service Providers (ISPs) in censored regions employ **Deep Packet Inspection (DPI)** to classify and throttle or drop encrypted VPN tunnels.
 
-> **Important:** The UDPspeeder binaries (`libspeederv2.so`) are embedded in the app according to device architectures (ARM64, x86_64, armeabi-v7a). The system extracts and runs these binaries thanks to `android:extractNativeLibs="true"` in the `AndroidManifest.xml`. You won't experience JNI errors.
+Standard WireGuard UDP packets carry fixed, identifiable signatures:
+- Handshake Initiation (`0x01`, 148 bytes)
+- Handshake Response (`0x02`, 92 bytes)
+- Transport Data (`0x04`)
 
----
+ISPs immediately drop these packets, preventing handshakes from completing.
 
-## 🤝 Contributing
+**VPNChain** solves this by routing all WireGuard traffic locally through `127.0.0.1:<local_port>` into a high-performance obfuscation engine (UDPspeeder or udp2raw). The payload is mathematically scrambled, stripped of WireGuard headers, and transmitted as generic scrambled UDP or simulated TCP streams.
 
-We welcome all Pull Requests (PRs) and Issues. Please make sure to adhere to the Compose architecture and MVVM pattern when adding code.
+## ✨ Key Features
+- **2 Operational Modes**: UDPspeeder (FEC & packet recovery) and udp2raw (FakeTCP simulated handshake).
+- **Cross-Platform**: macOS (15+), iOS (15+), Windows (7+), Android (5.0+).
+- **Built-in Pure Dart Core**: Zero root required, sandboxed Apple platform compliant.
+- **Native Process Runner**: Optional execution of official `speederv2` and `udp2raw` binaries.
+- **WireGuard Config Box**: Paste `.conf`, import files, auto-extract server IP and adjust MTU (1280).
+- **Live Diagnostics**: Real-time TX/RX speeds, ping latency, session bandwidth, and live console logs.
+- **Profile Management**: Import/Export `.vpnchain` and legacy `.selconf` profile bundles.
 
 ## 📄 License
-
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details. 
-*The core projects of UDPspeeder and WireGuard are subject to their own licenses (GPL/MIT, etc.).*
+MIT License. Core UDPspeeder and udp2raw projects belong to their respective authors (Wang Yu).
