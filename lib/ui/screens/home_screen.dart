@@ -3,6 +3,7 @@ import '../../models/tunnel_mode.dart';
 import '../../models/vpn_profile.dart';
 import '../../models/wireguard_config.dart';
 import '../../models/vpn_stats.dart';
+import '../../services/ota_update_service.dart';
 import '../../services/vpn_manager.dart';
 import '../theme/app_theme.dart';
 import '../widgets/live_logs_sheet.dart';
@@ -11,6 +12,7 @@ import '../widgets/power_button_ring.dart';
 import '../widgets/stats_dashboard_card.dart';
 import '../widgets/udp2raw_settings_card.dart';
 import '../widgets/udpspeeder_settings_card.dart';
+import '../widgets/update_dialog.dart';
 import '../widgets/wireguard_config_box.dart';
 import 'profiles_screen.dart';
 import 'settings_screen.dart';
@@ -179,6 +181,57 @@ class HomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Column(
                       children: [
+                        // OTA Update Notification Banner (if newer version detected)
+                        ListenableBuilder(
+                          listenable: OtaUpdateService.instance,
+                          builder: (context, _) {
+                            final ota = OtaUpdateService.instance;
+                            if (!ota.hasUpdate || ota.availableUpdate == null) {
+                              return const SizedBox.shrink();
+                            }
+                            final update = ota.availableUpdate!;
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cyanNeon.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppTheme.cyanNeon.withValues(alpha: 0.6)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.new_releases_rounded, color: AppTheme.cyanNeon, size: 22),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Yeni Sürüm Yayında: ${update.tagName}',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                        ),
+                                        Text(
+                                          'OTA üzerinden güncellemek için dokunun ${update.formattedSize.isNotEmpty ? "(${update.formattedSize})" : ""}',
+                                          style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => UpdateDialog.show(context, update),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppTheme.cyanNeon,
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    child: const Text('Güncelle', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+
                         // Profile quick picker banner
                         _ProfilePickerBanner(
                           currentProfile: profile,

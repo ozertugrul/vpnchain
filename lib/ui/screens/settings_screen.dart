@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../services/ota_update_service.dart';
 import '../../services/tunnel/tunnel_orchestrator.dart';
 import '../../services/vpn_manager.dart';
 import '../theme/app_theme.dart';
+import '../widgets/update_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
   final VpnManager vpnManager;
@@ -61,6 +63,19 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 24),
+
+              const Text(
+                'OTA GÜNCELLEMELERİ (GITHUB RELEASES)',
+                style: TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const _OtaUpdateCard(),
               const SizedBox(height: 24),
 
               const Text(
@@ -186,6 +201,122 @@ class _EngineOptionTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _OtaUpdateCard extends StatelessWidget {
+  const _OtaUpdateCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: OtaUpdateService.instance,
+      builder: (context, _) {
+        final ota = OtaUpdateService.instance;
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cyanNeon.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.cloud_sync_rounded, color: AppTheme.cyanNeon, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'GitHub Releases OTA İstemcisi',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Yüklü Sürüm: v${OtaUpdateService.currentVersion}',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Yeni bir sürüm yayınlandığında doğrudan GitHub Releases üzerinden tespit edilir ve cihazınıza uygun paket (Android APK, Windows Installer veya macOS) tek dokunuşla indirilir.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), height: 1.35),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: ota.isChecking
+                        ? null
+                        : () async {
+                            final update = await ota.checkForUpdates(isManual: true);
+                            if (!context.mounted) return;
+
+                            if (update != null && update.isNewer) {
+                              UpdateDialog.show(context, update);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: AppTheme.surfaceDark,
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle_rounded, color: AppTheme.greenActive, size: 20),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'VPNChain güncel! (v${OtaUpdateService.currentVersion})',
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ota.hasUpdate ? AppTheme.cyanNeon : const Color(0xFF1E293B),
+                      foregroundColor: ota.hasUpdate ? Colors.black : Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    icon: ota.isChecking
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Icon(
+                            ota.hasUpdate ? Icons.download_rounded : Icons.sync_rounded,
+                            size: 18,
+                            color: ota.hasUpdate ? Colors.black : AppTheme.cyanNeon,
+                          ),
+                    label: Text(
+                      ota.isChecking
+                          ? 'Denetleniyor...'
+                          : ota.hasUpdate
+                              ? 'Yeni Sürümü İndir (${ota.availableUpdate!.tagName})'
+                              : 'Güncellemeleri Denetle',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

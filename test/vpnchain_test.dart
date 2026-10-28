@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vpnchain/models/tunnel_mode.dart';
 import 'package:vpnchain/models/udpspeeder_config.dart';
 import 'package:vpnchain/models/udp2raw_config.dart';
+import 'package:vpnchain/models/update_info.dart';
 import 'package:vpnchain/models/vpn_profile.dart';
 import 'package:vpnchain/models/wireguard_config.dart';
 
@@ -140,6 +141,29 @@ PersistentKeepalive = 25
       expect(restored.tunnelMode, TunnelMode.udp2raw);
       expect(restored.udp2rawConfig.password, 'secret_password_123');
       expect(restored.wireGuardConfig.endpoint, '1.2.3.4:51820');
+    });
+  });
+
+  group('OTA Update Logic Tests', () {
+    test('compareVersions accurately detects newer semver tags', () {
+      expect(UpdateInfo.compareVersions('2.1.0', '2.0.0'), isTrue);
+      expect(UpdateInfo.compareVersions('v2.1.0', '2.0.0'), isTrue);
+      expect(UpdateInfo.compareVersions('3.0.0', '2.1.0'), isTrue);
+      expect(UpdateInfo.compareVersions('2.0.1', '2.0.0'), isTrue);
+      expect(UpdateInfo.compareVersions('2.0.0', '2.0.0'), isFalse);
+      expect(UpdateInfo.compareVersions('1.9.9', '2.0.0'), isFalse);
+    });
+
+    test('selectPlatformAsset correctly filters platform binaries', () {
+      final assets = [
+        {'name': 'vpnchain-android-v2.1.0.apk', 'browser_download_url': 'https://github.com/.../android.apk'},
+        {'name': 'vpnchain-windows-installer.exe', 'browser_download_url': 'https://github.com/.../installer.exe'},
+        {'name': 'vpnchain-windows-portable.zip', 'browser_download_url': 'https://github.com/.../portable.zip'},
+        {'name': 'vpnchain-macos-v2.1.0.zip', 'browser_download_url': 'https://github.com/.../macos.zip'},
+      ];
+
+      final selected = UpdateInfo.selectPlatformAsset(assets);
+      expect(selected, isNotEmpty);
     });
   });
 }

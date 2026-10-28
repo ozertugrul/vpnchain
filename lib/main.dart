@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'services/ota_update_service.dart';
 import 'services/vpn_manager.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/theme/app_theme.dart';
@@ -19,6 +20,9 @@ void main() async {
 
   final vpnManager = VpnManager();
   await vpnManager.initialize();
+
+  // Background non-blocking check for GitHub OTA updates
+  OtaUpdateService.instance.checkForUpdates().ignore();
 
   runApp(VpnChainApp(vpnManager: vpnManager));
 }
