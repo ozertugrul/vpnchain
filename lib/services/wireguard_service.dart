@@ -56,15 +56,16 @@ class WireGuardService {
           await confFile.writeAsString(wgConfigText);
 
           onLog('macOS: Requesting system permission to activate tunnel...');
+          const envPath = 'export PATH="/opt/homebrew/bin:/usr/local/bin:\$PATH";';
           // Tear down any stale interface first
           await Process.run('osascript', [
             '-e',
-            'do shell script "$wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
+            'do shell script "$envPath $wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
           ]);
 
           final result = await Process.run('osascript', [
             '-e',
-            'do shell script "$wgQuick up $_confPath" with administrator privileges',
+            'do shell script "$envPath $wgQuick up $_confPath" with administrator privileges',
           ]);
 
           if (result.exitCode == 0) {
@@ -74,10 +75,13 @@ class WireGuardService {
             onStatusChanged(VpnStatus.connected);
             return;
           } else {
-            onLog('macOS: wg-quick up warning: ${result.stderr}');
+            final err = result.stderr.toString().trim();
+            onLog('macOS: wg-quick up failed: $err');
+            throw Exception('macOS wg-quick failed to activate tunnel: $err');
           }
         } catch (e) {
           onLog('macOS: wg-quick launcher note: $e');
+          rethrow;
         }
       }
     }
@@ -146,9 +150,10 @@ class WireGuardService {
       if (wgQuick != null) {
         try {
           onLog('macOS: Tearing down wg-quick interface...');
+          const envPath = 'export PATH="/opt/homebrew/bin:/usr/local/bin:\$PATH";';
           await Process.run('osascript', [
             '-e',
-            'do shell script "$wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
+            'do shell script "$envPath $wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
           ]);
           _usingWgQuick = false;
           onLog('macOS: wg-quick tunnel terminated.');

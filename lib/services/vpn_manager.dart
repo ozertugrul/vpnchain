@@ -125,6 +125,13 @@ class VpnManager extends ChangeNotifier {
       return;
     }
 
+    if (profile.tunnelMode != TunnelMode.direct) {
+      if (profile.activeLocalPort == profile.activeTargetPort) {
+        _setError('Local Port (${profile.activeLocalPort}), Remote Port (${profile.activeTargetPort}) ile aynı olamaz. WireGuard istemcisi bu porta bağlanır (127.0.0.1:$profile.activeLocalPort). Lütfen farklı bir yerel port girin (örn. 1234 veya 51821).');
+        return;
+      }
+    }
+
     _resetCounters();
     _stats = _stats.copyWith(
       status: VpnStatus.connecting,

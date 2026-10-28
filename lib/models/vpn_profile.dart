@@ -61,9 +61,11 @@ class VpnProfile {
   int get activeLocalPort {
     switch (tunnelMode) {
       case TunnelMode.udpspeeder:
-        return udpSpeederConfig.localPort;
+        final lp = udpSpeederConfig.localPort;
+        return (lp == udpSpeederConfig.remotePort) ? 1234 : lp;
       case TunnelMode.udp2raw:
-        return udp2rawConfig.localPort;
+        final lp = udp2rawConfig.localPort;
+        return (lp == udp2rawConfig.remotePort) ? 1234 : lp;
       case TunnelMode.direct:
         return 0; // Not applicable for direct mode
     }

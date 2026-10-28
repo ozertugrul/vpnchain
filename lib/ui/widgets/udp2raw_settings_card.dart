@@ -126,10 +126,14 @@ class _Udp2RawSettingsCardState extends State<Udp2RawSettingsCard> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Remote Port',
-                      hintText: '4097',
+                      hintText: '8080',
+                      helperText: 'Sunucu portu',
                       prefixIcon: Icon(Icons.input_rounded, size: 18),
                     ),
-                    onChanged: (_) => _notifyChange(),
+                    onChanged: (_) {
+                      setState(() {});
+                      _notifyChange();
+                    },
                   ),
                 ),
               ],
@@ -145,12 +149,20 @@ class _Udp2RawSettingsCardState extends State<Udp2RawSettingsCard> {
                   child: TextField(
                     controller: _localPortCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Local Port',
                       hintText: '1234',
-                      prefixIcon: Icon(Icons.router_outlined, size: 18),
+                      helperText: 'Cihaz içi port',
+                      errorText: (_localPortCtrl.text.trim() == _remotePortCtrl.text.trim() &&
+                              _localPortCtrl.text.trim().isNotEmpty)
+                          ? 'Remote ile aynı olamaz'
+                          : null,
+                      prefixIcon: const Icon(Icons.router_outlined, size: 18),
                     ),
-                    onChanged: (_) => _notifyChange(),
+                    onChanged: (_) {
+                      setState(() {});
+                      _notifyChange();
+                    },
                   ),
                 ),
                 const SizedBox(width: 10),
