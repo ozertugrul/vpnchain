@@ -165,16 +165,20 @@ class HomeScreen extends StatelessWidget {
           appBar: AppBar(
             title: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cyanNeon.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 28,
+                    height: 28,
+                    fit: BoxFit.cover,
                   ),
-                  child: const Icon(Icons.vpn_lock_rounded, color: AppTheme.cyanNeon, size: 20),
                 ),
                 const SizedBox(width: 10),
-                const Text('VPNChain'),
+                const Text(
+                  'VPNChain',
+                  style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
               ],
             ),
             actions: [

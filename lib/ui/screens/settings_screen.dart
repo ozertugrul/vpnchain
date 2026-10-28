@@ -96,13 +96,14 @@ class SettingsScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.cyanNeon.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
                             ),
-                            child: const Icon(Icons.shield_outlined, color: AppTheme.cyanNeon, size: 24),
                           ),
                           const SizedBox(width: 12),
                           Column(
@@ -113,7 +114,7 @@ class SettingsScreen extends StatelessWidget {
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               Text(
-                                'Version 2.0.0 (Flutter Edition)',
+                                'Version ${OtaUpdateService.currentVersion}',
                                 style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                               ),
                             ],
