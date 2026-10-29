@@ -407,7 +407,48 @@ class VpnManager extends ChangeNotifier {
     try {
       if (Platform.isIOS) {
         // iOS does not permit spawning ICMP ping subprocesses due to Apple sandbox.
-        // Perform a socket probe to common gateway ports (DNS 53, Keenetic Web 80/443).
+        // Step 1: Probe Gateway DNS service on UDP port 53 (native & fast)
+        try {
+          final stopwatch = Stopwatch()..start();
+          final rawSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+          final completer = Completer<int?>();
+
+          // Standard 17-byte DNS A-record query for root
+          final dnsQuery = Uint8List.fromList([
+            0x2A, 0x4B, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01
+          ]);
+
+          rawSocket.listen((event) {
+            if (event == RawSocketEvent.read) {
+              final dg = rawSocket.receive();
+              if (dg != null && dg.data.isNotEmpty) {
+                stopwatch.stop();
+                if (!completer.isCompleted) completer.complete(stopwatch.elapsedMilliseconds);
+              }
+            }
+          });
+
+          rawSocket.send(dnsQuery, InternetAddress(ip), 53);
+
+          final rtt = await completer.future.timeout(
+            const Duration(milliseconds: 1500),
+            onTimeout: () => null,
+          );
+          rawSocket.close();
+
+          if (rtt != null) {
+            addLog('[Ping Results]', '✓ $ip is reachable! (DNS UDP port 53 responded in ${rtt}ms)');
+            return {
+              'success': true,
+              'output': 'Gateway $ip is ONLINE! (DNS UDP 53 RTT: ${rtt}ms)',
+            };
+          }
+        } catch (e) {
+          // Fallback to TCP socket probe
+        }
+
+        // Step 2: Fallback to TCP port probe (53 / 80 / 443)
         final stopwatch = Stopwatch()..start();
         for (final port in [53, 80, 443]) {
           try {
@@ -424,7 +465,7 @@ class VpnManager extends ChangeNotifier {
             // try next port
           }
         }
-        addLog('[Ping Results]', '✗ $ip timed out (no socket response on ports 53/80/443)');
+        addLog('[Ping Results]', '✗ $ip timed out (no response on UDP/TCP ports 53/80/443)');
         return {'success': false, 'error': 'Gateway $ip timed out'};
       }
 
