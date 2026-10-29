@@ -7,6 +7,7 @@ class WireGuardService {
   final _wireGuard = WireGuardFlutter.instance;
   bool _initialized = false;
   bool _usingWgQuick = false;
+  String? _activeScutilProfile;
   static const String _confPath = '/tmp/vpnchain0.conf';
 
   StreamSubscription? _stageSub;
@@ -31,6 +32,35 @@ class WireGuardService {
     }
   }
 
+  Future<String?> _findScutilVpnProfile(String? requestedName) async {
+    if (!Platform.isMacOS) return null;
+    try {
+      final res = await Process.run('scutil', ['--nc', 'list']);
+      if (res.exitCode == 0) {
+        final lines = res.stdout.toString().split('\n');
+        // Priority 1: Exact match with current profile name
+        if (requestedName != null && requestedName.trim().isNotEmpty) {
+          final target = requestedName.trim();
+          for (final line in lines) {
+            if (line.contains('"$target"')) {
+              return target;
+            }
+          }
+        }
+        // Priority 2: Any registered WireGuard profile (e.g., peer_ErtuMac, VPNChain)
+        for (final line in lines) {
+          if (line.contains('(com.wireguard.macos)') || line.contains('VPNChain') || line.contains('peer_ErtuMac')) {
+            final match = RegExp(r'"([^"]+)"').firstMatch(line);
+            if (match != null) {
+              return match.group(1);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   String? _findWgQuick() {
     for (final p in ['/opt/homebrew/bin/wg-quick', '/usr/local/bin/wg-quick', '/usr/bin/wg-quick']) {
       if (File(p).existsSync()) return p;
@@ -41,13 +71,34 @@ class WireGuardService {
   Future<void> start({
     required String wgConfigText,
     required String serverAddress,
+    String? profileName,
     String? providerBundleIdentifier,
     required Function(VpnStatus status) onStatusChanged,
     required Function(int rxSpeed, int txSpeed, int totalRx, int totalTx) onTrafficUpdate,
     required Function(String log) onLog,
   }) async {
-    // 1. On macOS desktop, prioritize native wg-quick if available to bypass Apple NetworkExtension restrictions
+    // 1. On macOS desktop, prioritize registered Apple NetworkExtension VPN Profile (0 password prompts!)
     if (Platform.isMacOS) {
+      final scutilProfile = await _findScutilVpnProfile(profileName);
+      if (scutilProfile != null) {
+        onLog('macOS: Found registered Apple VPN Profile "$scutilProfile" (System Settings > VPN)');
+        try {
+          onLog('macOS: Connecting Apple VPN Profile "$scutilProfile" silently without password prompt...');
+          final startRes = await Process.run('scutil', ['--nc', 'start', scutilProfile]);
+          if (startRes.exitCode == 0) {
+            _activeScutilProfile = scutilProfile;
+            onLog('macOS: Native Apple VPN Profile active! Monitored in System Settings.');
+            onStatusChanged(VpnStatus.connected);
+            return;
+          } else {
+            onLog('macOS: scutil start returned code ${startRes.exitCode}: ${startRes.stderr}');
+          }
+        } catch (e) {
+          onLog('macOS: scutil activation note: $e');
+        }
+      }
+
+      // Fallback: Use wg-quick with sudo
       final wgQuick = _findWgQuick();
       if (wgQuick != null) {
         onLog('macOS: Detected native wg-quick at $wgQuick');
@@ -55,7 +106,6 @@ class WireGuardService {
           final confFile = File(_confPath);
           await confFile.writeAsString(wgConfigText);
 
-          onLog('macOS: Requesting system permission to activate tunnel...');
           const envPath = 'export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH;';
           // Tear down any stale interface first
           await Process.run('osascript', [
@@ -70,7 +120,7 @@ class WireGuardService {
 
           if (result.exitCode == 0) {
             _usingWgQuick = true;
-            onLog('macOS: Native WireGuard tunnel activated successfully!');
+            onLog('macOS: WireGuard tunnel activated successfully!');
             onLog(result.stdout.toString().trim());
             onStatusChanged(VpnStatus.connected);
             return;
@@ -145,6 +195,18 @@ class WireGuardService {
   }
 
   Future<void> stop({required Function(String log) onLog}) async {
+    if (_activeScutilProfile != null && Platform.isMacOS) {
+      onLog('macOS: Deactivating Apple VPN Profile "$_activeScutilProfile"...');
+      try {
+        await Process.run('scutil', ['--nc', 'stop', _activeScutilProfile!]);
+        _activeScutilProfile = null;
+        onLog('macOS: Native Apple VPN Profile disconnected.');
+        return;
+      } catch (e) {
+        onLog('macOS: scutil stop error: $e');
+      }
+    }
+
     if (_usingWgQuick && Platform.isMacOS) {
       final wgQuick = _findWgQuick();
       if (wgQuick != null) {

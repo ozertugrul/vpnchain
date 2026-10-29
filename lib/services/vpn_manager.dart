@@ -198,6 +198,7 @@ class VpnManager extends ChangeNotifier {
       await _wireGuardService.start(
         wgConfigText: chainedWgConfig,
         serverAddress: serverAddr,
+        profileName: profile.name,
         onStatusChanged: (status) {
           _stats = _stats.copyWith(status: status);
           if (status == VpnStatus.connected) {
