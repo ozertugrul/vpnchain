@@ -215,13 +215,17 @@ class VpnManager extends ChangeNotifier {
         onLog: (line) => addLog('[WireGuard]', line),
       );
 
-      _stats = _stats.copyWith(
-        status: VpnStatus.connected,
-        handshakeStatus: HandshakeStatus.confirmed,
-      );
-      _startTimers();
-      addLog('[VPNChain]', 'Tunnel active! WireGuard signatures masked. Traffic monitored.');
-      notifyListeners();
+      if (_stats.status != VpnStatus.disconnected && _stats.status != VpnStatus.error) {
+        _stats = _stats.copyWith(
+          status: VpnStatus.connected,
+          handshakeStatus: HandshakeStatus.confirmed,
+        );
+        _startTimers();
+        addLog('[VPNChain]', 'Tunnel active! WireGuard signatures masked. Traffic monitored.');
+        notifyListeners();
+      } else {
+        addLog('[VPNChain]', 'WireGuard interface failed to connect (status: ${_stats.status}).', level: LogLevel.warning);
+      }
 
       final updated = profile.copyWith(lastConnectedAt: DateTime.now());
       await updateCurrentProfile(updated);
@@ -398,8 +402,31 @@ class VpnManager extends ChangeNotifier {
 
   /// Pings an internal VPN IP (Gateway 10.13.13.1 or Peer 10.13.13.8) using native ICMP ping.
   Future<Map<String, dynamic>> pingVpnTarget(String ip) async {
-    addLog('[Ping Diagnostics]', 'Executing ICMP ping to $ip...');
+    addLog('[Ping Diagnostics]', 'Executing connectivity test to $ip...');
     try {
+      if (Platform.isIOS) {
+        // iOS does not permit spawning ICMP ping subprocesses due to Apple sandbox.
+        // Perform a socket probe to common gateway ports (DNS 53, Keenetic Web 80/443).
+        final stopwatch = Stopwatch()..start();
+        for (final port in [53, 80, 443]) {
+          try {
+            final socket = await Socket.connect(ip, port, timeout: const Duration(seconds: 2));
+            stopwatch.stop();
+            socket.destroy();
+            final ms = stopwatch.elapsedMilliseconds;
+            addLog('[Ping Results]', '✓ $ip is reachable! (TCP port $port responded in ${ms}ms)');
+            return {
+              'success': true,
+              'output': 'Gateway $ip reached successfully via port $port (${ms}ms RTT)',
+            };
+          } catch (_) {
+            // try next port
+          }
+        }
+        addLog('[Ping Results]', '✗ $ip timed out (no socket response on ports 53/80/443)');
+        return {'success': false, 'error': 'Gateway $ip timed out'};
+      }
+
       final result = await Process.run(
         Platform.isWindows ? 'ping' : 'ping',
         Platform.isWindows ? ['-n', '3', '-w', '1500', ip] : ['-c', '3', '-W', '2', ip],

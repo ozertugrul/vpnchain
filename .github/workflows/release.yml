@@ -52,6 +52,11 @@ jobs:
       - name: Build Windows Executable
         run: flutter build windows --release
 
+      - name: Copy native binaries to release build
+        shell: pwsh
+        run: |
+          Copy-Item windows\bin\speederv2.exe build\windows\x64\runner\Release\speederv2.exe
+
       - name: Build Windows Setup Installer (Inno Setup)
         shell: pwsh
         run: |

@@ -86,11 +86,14 @@ class NativeProcessEngine implements ObfuscationEngine {
     }
 
     final exeExt = Platform.isWindows ? '.exe' : '';
+    final exeDir = File(Platform.resolvedExecutable).parent.path;
 
-    // Check common binary install directories on macOS and Linux
+    // Check application directory, current directory and common binary paths
     final searchDirs = [
       Directory.current.path,
-      Platform.resolvedExecutable.contains('/') ? File(Platform.resolvedExecutable).parent.path : '',
+      exeDir,
+      '$exeDir/data',
+      '$exeDir/bin',
       '/opt/homebrew/bin',
       '/usr/local/bin',
       '/usr/bin',
