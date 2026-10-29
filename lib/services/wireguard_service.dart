@@ -77,37 +77,64 @@ class WireGuardService {
     required Function(int rxSpeed, int txSpeed, int totalRx, int totalTx) onTrafficUpdate,
     required Function(String log) onLog,
   }) async {
-    // 1. On macOS desktop, prioritize registered Apple NetworkExtension VPN Profile (0 password prompts!)
+    // 1. On macOS desktop, check if a chained Apple NetworkExtension VPN Profile is configured (0 password prompts)
     if (Platform.isMacOS) {
       final scutilProfile = await _findScutilVpnProfile(profileName);
       if (scutilProfile != null) {
-        onLog('macOS: Found registered Apple VPN Profile "$scutilProfile" (System Settings > VPN)');
-        try {
-          onLog('macOS: Connecting Apple VPN Profile "$scutilProfile" silently without password prompt...');
-          final startRes = await Process.run('scutil', ['--nc', 'start', scutilProfile]);
-          if (startRes.exitCode == 0) {
-            _activeScutilProfile = scutilProfile;
-            onLog('macOS: Native Apple VPN Profile active! Monitored in System Settings.');
-            onStatusChanged(VpnStatus.connected);
-            return;
-          } else {
-            onLog('macOS: scutil start returned code ${startRes.exitCode}: ${startRes.stderr}');
+        // Inspect profile remote address to verify it is chained to local obfuscator
+        final showRes = await Process.run('scutil', ['--nc', 'show', scutilProfile]);
+        final output = showRes.stdout.toString();
+        final isChained = output.contains('127.0.0.1') || output.contains('localhost');
+
+        if (isChained) {
+          onLog('macOS: Found registered Apple VPN Profile "$scutilProfile" (Endpoint: 127.0.0.1, Chained Mode)');
+          try {
+            onLog('macOS: Connecting Apple VPN Profile "$scutilProfile" silently without password prompt...');
+            final startRes = await Process.run('scutil', ['--nc', 'start', scutilProfile]);
+            if (startRes.exitCode == 0) {
+              _activeScutilProfile = scutilProfile;
+              onLog('macOS: Native Apple VPN Profile active! Monitored in System Settings.');
+              onStatusChanged(VpnStatus.connected);
+              return;
+            }
+          } catch (e) {
+            onLog('macOS: scutil start note: $e');
           }
-        } catch (e) {
-          onLog('macOS: scutil activation note: $e');
+        } else {
+          final remoteMatch = RegExp(r'RemoteAddress\s*:\s*([^\s\n]+)').firstMatch(output);
+          final remoteAddr = remoteMatch?.group(1) ?? 'Direct Endpoint';
+          onLog('macOS: Apple VPN Profile "$scutilProfile" has direct endpoint "$remoteAddr" (bypasses obfuscator).');
+          onLog('macOS: Using wg-quick with chained obfuscation config (127.0.0.1:localPort) for DPI bypass.');
         }
       }
 
-      // Fallback: Use wg-quick with sudo
       final wgQuick = _findWgQuick();
       if (wgQuick != null) {
-        onLog('macOS: Detected native wg-quick at $wgQuick');
+        onLog('macOS: Using wg-quick with chained obfuscation config at $wgQuick');
         try {
           final confFile = File(_confPath);
           await confFile.writeAsString(wgConfigText);
 
+          // 1. First try non-interactive sudo (0 password prompts if sudoers configured)
+          await Process.run('sudo', ['-n', wgQuick, 'down', _confPath], environment: {
+            'PATH': '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
+          });
+
+          var upRes = await Process.run('sudo', ['-n', wgQuick, 'up', _confPath], environment: {
+            'PATH': '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
+          });
+
+          if (upRes.exitCode == 0) {
+            _usingWgQuick = true;
+            onLog('macOS: WireGuard tunnel activated silently via sudo (chained to obfuscator)!');
+            onLog(upRes.stdout.toString().trim());
+            onStatusChanged(VpnStatus.connected);
+            return;
+          }
+
+          // 2. Fallback to osascript with administrator privileges
+          onLog('macOS: Authenticating wg-quick with administrator privileges...');
           const envPath = 'export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH;';
-          // Tear down any stale interface first
           await Process.run('osascript', [
             '-e',
             'do shell script "$envPath $wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
@@ -120,7 +147,7 @@ class WireGuardService {
 
           if (result.exitCode == 0) {
             _usingWgQuick = true;
-            onLog('macOS: WireGuard tunnel activated successfully!');
+            onLog('macOS: WireGuard tunnel activated successfully (chained to obfuscator)!');
             onLog(result.stdout.toString().trim());
             onStatusChanged(VpnStatus.connected);
             return;
@@ -212,11 +239,18 @@ class WireGuardService {
       if (wgQuick != null) {
         try {
           onLog('macOS: Tearing down wg-quick interface...');
-          const envPath = 'export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH;';
-          await Process.run('osascript', [
-            '-e',
-            'do shell script "$envPath $wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
-          ]);
+          // 1. Try non-interactive sudo first
+          final sudoRes = await Process.run('sudo', ['-n', wgQuick, 'down', _confPath], environment: {
+            'PATH': '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
+          });
+          if (sudoRes.exitCode != 0) {
+            // 2. Fallback to osascript
+            const envPath = 'export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH;';
+            await Process.run('osascript', [
+              '-e',
+              'do shell script "$envPath $wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
+            ]);
+          }
           _usingWgQuick = false;
           onLog('macOS: wg-quick tunnel terminated.');
           return;
