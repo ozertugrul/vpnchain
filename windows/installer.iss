@@ -2,7 +2,7 @@
 ; Generates a professional Windows Setup Installer (.exe)
 
 #define MyAppName "VPNChain"
-#define MyAppVersion "2.1.1"
+#define MyAppVersion "2.2.4"
 #define MyAppPublisher "VPNChain"
 #define MyAppURL "https://github.com/ozertugrul/vpnchain"
 #define MyAppExeName "vpnchain.exe"
