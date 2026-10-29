@@ -133,8 +133,12 @@ class WireGuardService {
           }
 
           // 2. Fallback to osascript with administrator privileges
-          onLog('macOS: Authenticating wg-quick with administrator privileges...');
+          // Simultaneously install sudoers NOPASSWD rule so user NEVER has to enter password again!
+          onLog('macOS: Authenticating wg-quick (enabling 1-time passwordless authorization)...');
+          final currentUser = Platform.environment['USER'] ?? 'ertu-mac';
           const envPath = 'export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH;';
+          final setupSudoers = 'mkdir -p /etc/sudoers.d && echo "$currentUser ALL=(ALL) NOPASSWD: /opt/homebrew/bin/wg-quick, /usr/local/bin/wg-quick, /opt/homebrew/bin/wireguard-go, /usr/local/bin/wireguard-go" > /etc/sudoers.d/vpnchain && chmod 0440 /etc/sudoers.d/vpnchain;';
+
           await Process.run('osascript', [
             '-e',
             'do shell script "$envPath $wgQuick down $_confPath 2>/dev/null || true" with administrator privileges',
@@ -142,7 +146,7 @@ class WireGuardService {
 
           final result = await Process.run('osascript', [
             '-e',
-            'do shell script "$envPath $wgQuick up $_confPath" with administrator privileges',
+            'do shell script "$setupSudoers $envPath $wgQuick up $_confPath" with administrator privileges',
           ]);
 
           if (result.exitCode == 0) {
