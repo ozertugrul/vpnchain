@@ -428,7 +428,7 @@ public class PacketTunnelProvider: NEPacketTunnelProvider {
 
                         // Update the stats in shared app group (main thread for UI updates).
                         DispatchQueue.main.async {
-                            if let sharedDefaults = UserDefaults(suiteName: "group.com.orbanvpn.wireguard") {
+                            if let sharedDefaults = UserDefaults(suiteName: "group.com.vpnchain.vpnchain") {
                                 sharedDefaults.set(downloadSpeed, forKey: "downloadSpeed")
                                 sharedDefaults.set(uploadSpeed, forKey: "uploadSpeed")
                                 sharedDefaults.set(self.totalDownloadBytes, forKey: "totalDownloadBytes")

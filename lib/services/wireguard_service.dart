@@ -23,6 +23,7 @@ class WireGuardService {
       await _wireGuard.initialize(
         interfaceName: interfaceName,
         vpnName: vpnName,
+        iosAppGroup: 'group.com.vpnchain.vpnchain',
       );
       _initialized = true;
     } catch (e) {
